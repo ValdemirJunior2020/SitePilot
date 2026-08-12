@@ -1,5 +1,6 @@
 import { getDb } from '../config/firebase.js';
 import { performSiteScan } from './siteService.js';
+import { performPriceCheck } from './priceWatchService.js';
 
 const hoursFor = { 'Every 6 hours': 6, 'Every 12 hours': 12, 'Daily': 24, 'Weekly': 168 };
 let timer = null;
@@ -24,6 +25,12 @@ async function tick() {
         if (!due(site.data())) continue;
         try { await performSiteScan(user.id, site.id); }
         catch (error) { console.error(`Scheduled scan failed ${user.id}/${site.id}:`, error.message); }
+      }
+      const watches = await user.ref.collection('priceWatches').get();
+      for (const watch of watches.docs) {
+        if (!due(watch.data())) continue;
+        try { await performPriceCheck(user.id, watch.id); }
+        catch (error) { console.error(`Scheduled price check failed ${user.id}/${watch.id}:`, error.message); }
       }
     }
   } catch (error) {

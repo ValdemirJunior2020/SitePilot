@@ -482,3 +482,31 @@ Set `FIREBASE_STORAGE_BUCKET`. The local screenshot fallback is intentionally no
 Leave `OLLAMA_ENABLED=false`, or confirm Ollama is running and the model in `OLLAMA_MODEL` has been pulled. This does not block normal scanning.
 #   S i t e P i l o t  
  
+## Price Watch (v2)
+
+SitePilot now includes **Price Watch** without removing the original website-monitoring workflow.
+
+A signed-in user can open **Price Watch → Add price watch** and enter a product name such as `32GB DDR5 Memory RAM`, a public product-page URL, an optional target price, check frequency, and alert email. Each price check uses Puppeteer, SSRF protections, structured product metadata/JSON-LD and common retailer price elements to find the live price. Checks are stored under `users/{uid}/priceWatches/{watchId}/checks/{checkId}`.
+
+When `ENABLE_SCHEDULER=true`, the same scheduler that scans monitored websites also checks due price watches. If the price drops or reaches the target, SitePilot can send an email through Resend.
+
+Add these server environment variables for email alerts:
+
+```env
+RESEND_API_KEY=re_your_key
+EMAIL_FROM=SitePilot Alerts <alerts@your-verified-domain.com>
+```
+
+The `EMAIL_FROM` domain must be verified with your email provider. Price checks still work if email is not configured; the alert simply will not be sent.
+
+For broader store comparison, SitePilot has an optional **Find Better Prices** button backed by Google Shopping through SerpApi. Add:
+
+```env
+SERPAPI_KEY=your_serpapi_key
+SHOPPING_COUNTRY=us
+SHOPPING_LANGUAGE=en
+```
+
+Without `SERPAPI_KEY`, the core product-page tracker still works and the UI clearly reports that broader shopping search is not configured.
+
+Price results can vary by location, account state, shipping destination, membership, coupons, taxes, and retailer anti-bot behavior. SitePilot records the price visible to its server-side browser; it should not be treated as a guaranteed checkout price.

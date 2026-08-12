@@ -9,6 +9,7 @@ import { errorHandler, notFound } from './middleware/errorHandler.js';
 import sitesRoutes from './routes/sites.js';
 import dashboardRoutes from './routes/dashboard.js';
 import reportsRoutes from './routes/reports.js';
+import priceWatchesRoutes from './routes/priceWatches.js';
 
 const app = express();
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((x) => x.trim()).filter(Boolean);
@@ -26,6 +27,8 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(apiLimiter);
 app.use('/screenshots', express.static(path.resolve('screenshots'), { maxAge: '1h', fallthrough: true }));
 
+app.get('/', (_req, res) => res.json({ success: true, data: { name: 'SitePilot API', status: 'online' } }));
+
 app.get('/api/health', (_req, res) => res.json({
   success: true,
   data: {
@@ -33,11 +36,14 @@ app.get('/api/health', (_req, res) => res.json({
     status: 'ok',
     ollamaEnabled: String(process.env.OLLAMA_ENABLED).toLowerCase() === 'true',
     schedulerEnabled: String(process.env.ENABLE_SCHEDULER).toLowerCase() === 'true',
+    emailAlertsEnabled: Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM),
+    shoppingSearchEnabled: Boolean(process.env.SERPAPI_KEY),
     time: new Date().toISOString()
   }
 }));
 
 app.use('/api/sites', requireAuth, sitesRoutes);
+app.use('/api/price-watches', requireAuth, priceWatchesRoutes);
 app.use('/api', requireAuth, dashboardRoutes);
 app.use('/api', requireAuth, reportsRoutes);
 app.use(notFound);

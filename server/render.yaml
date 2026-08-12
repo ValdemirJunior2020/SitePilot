@@ -3,7 +3,7 @@ services:
     name: sitepilot-api
     runtime: node
     rootDir: server
-    buildCommand: npm install
+    buildCommand: npm install && npx puppeteer browsers install chrome
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -17,3 +17,10 @@ services:
         value: "false"
       - key: ENABLE_SCHEDULER
         value: "false"
+
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

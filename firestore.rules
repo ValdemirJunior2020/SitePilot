@@ -11,6 +11,18 @@ service cloud.firestore {
       allow read: if owns(userId);
       allow write: if false;
 
+
+
+      match /priceWatches/{watchId} {
+        allow read: if owns(userId);
+        allow write: if false;
+
+        match /checks/{checkId} {
+          allow read: if owns(userId);
+          allow write: if false;
+        }
+      }
+
       match /sites/{siteId} {
         allow read: if owns(userId);
         allow write: if false;
