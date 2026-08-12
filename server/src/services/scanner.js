@@ -37,8 +37,8 @@ export async function scanWebsite(url) {
       'SitePilot Website Monitor/1.0'
     )
 
-    page.setDefaultNavigationTimeout(30000)
-    page.setDefaultTimeout(15000)
+    page.setDefaultNavigationTimeout(60000)
+    page.setDefaultTimeout(30000)
 
     await installRequestGuard(page)
 
@@ -48,10 +48,12 @@ export async function scanWebsite(url) {
     try {
       response = await page.goto(url, {
         waitUntil: 'domcontentloaded',
-        timeout: 30000
+        timeout: 60000
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 900))
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1200)
+      })
     } catch (error) {
       if (error.message?.includes('ERR_BLOCKED_BY_CLIENT')) {
         const blocked = new Error(
@@ -62,7 +64,8 @@ export async function scanWebsite(url) {
         throw blocked
       }
 
-      navigationError = error.message || 'Navigation failed'
+      navigationError =
+        error.message || 'Navigation failed'
     }
 
     const finalUrl =
@@ -72,7 +75,8 @@ export async function scanWebsite(url) {
 
     await assertSafeUrl(finalUrl)
 
-    const statusCode = response?.status() || 0
+    const statusCode =
+      response?.status() || 0
 
     const extracted = await page.evaluate(() => {
       const clean = (value) =>
@@ -86,42 +90,59 @@ export async function scanWebsite(url) {
           ?.getAttribute('content') || ''
 
       const canonical =
-        document.querySelector('link[rel="canonical"]')?.href || ''
+        document.querySelector(
+          'link[rel="canonical"]'
+        )?.href || ''
 
       const links = [
         ...document.querySelectorAll('a[href]')
       ]
-        .map((a) => a.href)
+        .map((anchor) => anchor.href)
         .filter(Boolean)
 
-      const images = [...document.images]
-        .map((img) => ({
-          src: img.currentSrc || img.src,
-          alt: clean(img.alt)
+      const images = [
+        ...document.images
+      ]
+        .map((image) => ({
+          src:
+            image.currentSrc ||
+            image.src,
+          alt: clean(image.alt)
         }))
         .filter((image) => image.src)
 
       const headings = [
-        ...document.querySelectorAll('h1,h2,h3')
+        ...document.querySelectorAll(
+          'h1,h2,h3'
+        )
       ]
         .map((heading) => ({
-          level: heading.tagName.toLowerCase(),
-          text: clean(heading.innerText)
+          level:
+            heading.tagName.toLowerCase(),
+          text: clean(
+            heading.innerText
+          )
         }))
-        .filter((heading) => heading.text)
+        .filter(
+          (heading) => heading.text
+        )
 
       const h1 = clean(
-        document.querySelector('h1')?.innerText
+        document.querySelector('h1')
+          ?.innerText
       )
 
-      const clone = document.body?.cloneNode(true)
+      const clone =
+        document.body?.cloneNode(true)
 
       if (clone) {
         clone
           .querySelectorAll(
             'script,style,noscript,svg,canvas,template'
           )
-          .forEach((element) => element.remove())
+          .forEach((element) => {
+            element.remove()
+          })
       }
 
       const visibleText = clean(
@@ -131,103 +152,150 @@ export async function scanWebsite(url) {
       )
 
       return {
-        title: clean(document.title),
-        description: clean(meta('description')),
+        title: clean(
+          document.title
+        ),
+
+        description: clean(
+          meta('description')
+        ),
+
         h1,
+
         canonical,
+
         links,
+
         images,
+
         headings,
+
         visibleText,
+
         html:
-          document.documentElement?.outerHTML || ''
+          document.documentElement
+            ?.outerHTML || ''
       }
     })
 
-    const screenshotSize = navigationError
-      ? null
-      : await page
-          .evaluate(() => ({
-            width: Math.max(
-              1,
-              Math.min(
-                1440,
-                document.documentElement?.scrollWidth || 1440
-              )
-            ),
-            height: Math.max(
-              1,
-              Math.min(
-                12000,
-                document.documentElement?.scrollHeight || 1000
-              )
-            )
-          }))
-          .catch(() => null)
+    const screenshotSize =
+      navigationError
+        ? null
+        : await page
+            .evaluate(() => ({
+              width: Math.max(
+                1,
+                Math.min(
+                  1440,
+                  document.documentElement
+                    ?.scrollWidth || 1440
+                )
+              ),
 
-    const screenshotBuffer = !screenshotSize
-      ? null
-      : await page
-          .screenshot({
-            type: 'png',
-            captureBeyondViewport: true,
-            clip: {
-              x: 0,
-              y: 0,
-              width: screenshotSize.width,
-              height: screenshotSize.height
-            }
-          })
-          .catch(() => null)
+              height: Math.max(
+                1,
+                Math.min(
+                  12000,
+                  document.documentElement
+                    ?.scrollHeight || 1000
+                )
+              )
+            }))
+            .catch(() => null)
+
+    const screenshotBuffer =
+      !screenshotSize
+        ? null
+        : await page
+            .screenshot({
+              type: 'png',
+
+              captureBeyondViewport: true,
+
+              clip: {
+                x: 0,
+                y: 0,
+
+                width:
+                  screenshotSize.width,
+
+                height:
+                  screenshotSize.height
+              }
+            })
+            .catch(() => null)
 
     const visibleText = truncate(
-      normalizeText(extracted.visibleText),
+      normalizeText(
+        extracted.visibleText
+      ),
       90000
     )
 
-    const normalizedHtml = normalizeText(
-      extracted.html
-    )
+    const normalizedHtml =
+      normalizeText(
+        extracted.html
+      )
 
     const links = [
       ...new Set(
         extracted.links
-          .map(normalizeUrl)
+          .map((link) =>
+            normalizeUrl(link)
+          )
           .filter(Boolean)
       )
     ].slice(0, 300)
 
     const cleanTitle = truncate(
-      normalizeText(extracted.title),
+      normalizeText(
+        extracted.title
+      ),
       500
     )
 
-    const cleanDescription = truncate(
-      normalizeText(extracted.description),
-      1200
-    )
+    const cleanDescription =
+      truncate(
+        normalizeText(
+          extracted.description
+        ),
+        1200
+      )
 
     const cleanH1 = truncate(
-      normalizeText(extracted.h1),
+      normalizeText(
+        extracted.h1
+      ),
       800
     )
 
-    const cleanCanonical = truncate(
-      normalizeUrl(extracted.canonical),
-      1200
-    )
+    const cleanCanonical =
+      truncate(
+        normalizeUrl(
+          extracted.canonical
+        ),
+        1200
+      )
 
-    const missingAlt = extracted.images.filter(
-      (image) => !normalizeText(image.alt)
-    ).length
+    const missingAlt =
+      extracted.images.filter(
+        (image) =>
+          !normalizeText(
+            image.alt
+          )
+      ).length
 
     const healthIssues = []
 
     if (!cleanTitle) {
-      healthIssues.push('Missing page title')
+      healthIssues.push(
+        'Missing page title'
+      )
     }
 
-    if (cleanTitle.length > 60) {
+    if (
+      cleanTitle.length > 60
+    ) {
       healthIssues.push(
         'Page title is longer than 60 characters'
       )
@@ -239,14 +307,18 @@ export async function scanWebsite(url) {
       )
     }
 
-    if (cleanDescription.length > 160) {
+    if (
+      cleanDescription.length > 160
+    ) {
       healthIssues.push(
         'Meta description is longer than 160 characters'
       )
     }
 
     if (!cleanH1) {
-      healthIssues.push('Missing main H1')
+      healthIssues.push(
+        'Missing main H1'
+      )
     }
 
     if (!cleanCanonical) {
@@ -258,7 +330,9 @@ export async function scanWebsite(url) {
     if (missingAlt) {
       healthIssues.push(
         `${missingAlt} image${
-          missingAlt === 1 ? '' : 's'
+          missingAlt === 1
+            ? ''
+            : 's'
         } missing alt text`
       )
     }
@@ -267,7 +341,9 @@ export async function scanWebsite(url) {
       healthIssues.push(
         'Page could not be reached'
       )
-    } else if (statusCode >= 400) {
+    } else if (
+      statusCode >= 400
+    ) {
       healthIssues.push(
         `HTTP ${statusCode} response`
       )
@@ -275,44 +351,74 @@ export async function scanWebsite(url) {
 
     return {
       url: finalUrl,
-      title: cleanTitle,
-      description: cleanDescription,
-      h1: cleanH1,
-      canonicalUrl: cleanCanonical,
+
+      title:
+        cleanTitle,
+
+      description:
+        cleanDescription,
+
+      h1:
+        cleanH1,
+
+      canonicalUrl:
+        cleanCanonical,
+
       statusCode,
+
       visibleText,
 
-      textHash: sha256(visibleText),
-      htmlHash: sha256(normalizedHtml),
+      textHash:
+        sha256(
+          visibleText
+        ),
+
+      htmlHash:
+        sha256(
+          normalizedHtml
+        ),
 
       links,
 
-      images: extracted.images.slice(0, 120),
+      images:
+        extracted.images.slice(
+          0,
+          120
+        ),
 
-      headings: extracted.headings.slice(
-        0,
-        100
-      ),
+      headings:
+        extracted.headings.slice(
+          0,
+          100
+        ),
 
       healthIssues,
 
-      screenshotHash: screenshotBuffer
-        ? sha256(screenshotBuffer)
-        : null,
+      screenshotHash:
+        screenshotBuffer
+          ? sha256(
+              screenshotBuffer
+            )
+          : null,
 
       screenshotBuffer,
 
       navigationError,
 
-      duration: Date.now() - started
+      duration:
+        Date.now() - started
     }
   } finally {
     if (page) {
-      await page.close().catch(() => {})
+      await page
+        .close()
+        .catch(() => {})
     }
 
     if (browser) {
-      await browser.close().catch(() => {})
+      await browser
+        .close()
+        .catch(() => {})
     }
   }
 }
