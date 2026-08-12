@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owns(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // The browser can read only its own SitePilot data.
+    // All writes are performed by the authenticated Node API with Firebase Admin.
+    match /users/{userId} {
+      allow read: if owns(userId);
+      allow write: if false;
+
+      match /sites/{siteId} {
+        allow read: if owns(userId);
+        allow write: if false;
+
+        match /scans/{scanId} {
+          allow read: if owns(userId);
+          allow write: if false;
+        }
+      }
+    }
+  }
+}

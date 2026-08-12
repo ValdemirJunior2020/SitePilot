@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: sitepilot-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: NODE_ENV
+        value: production
+      - key: FIREBASE_PROJECT_ID
+        value: quizzhp-3729a
+      - key: OLLAMA_ENABLED
+        value: "false"
+      - key: ENABLE_SCHEDULER
+        value: "false"
